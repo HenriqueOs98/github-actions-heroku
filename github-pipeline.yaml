@@ -1,0 +1,47 @@
+name: Build and deploy JAR app heroku
+
+env:
+  JAVA_VERSION: '11'                  # set this to the Java version to use
+  DISTRIBUTION: zulu                  # set this to the Java distribution
+
+on:
+  push:
+    branches:
+      - $default-branch
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  App:
+    runs-on: ubuntu-latest
+      - name: Deployment to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
+        if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ', '), '#skip') }}
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: 'hickos-app-12345' # Must be unique in Heroku
+          heroku_email: 'henriqueos98@outlook.com'
+          dontuseforce: false
+          rollbackonhealthcheckfailed: false
+          usedocker: true
+
+  push_to_docker_hub:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: hickos/hickos-app-12345:latest
